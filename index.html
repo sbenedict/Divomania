@@ -1,0 +1,250 @@
+<html>
+
+<head>
+  <title>Div'o'mania</title>
+
+  <style id=gameStyles>
+    DIV.Box {
+      background-color: transparent;
+      width: 32px;
+      height: 32px;
+      border: 1px solid black;
+      margin-bottom: 2px;
+    }
+  </style>
+
+  <script>
+    var colorSet = new Array("red", "blue", "green", "orange", "yellow", "violet", "cyan", "gray", "white", "black");;
+
+    function getRandomColor(el) {
+      var boardColors = parseInt(Board.getAttribute("Colors"), 10);
+      if (el.style.backgroundColor == "")
+        el.style.backgroundColor = colorSet[Math.round(Math.random() * (boardColors-1))];
+    }
+
+    function restart() {
+      Status.innerText = "Start clicking!!";
+      init();
+    }
+
+    var markedBoxes = [];
+
+    function markBoxes(evt) {
+      var el = evt.target;
+
+      if (el.className == "Box") {
+        markedBoxes = getSimilarBoxes(el);
+
+        if (markedBoxes.length > 1)
+          for (var i=0; i < markedBoxes.length; i++)
+            markedBoxes[i].style.filter = "opacity(0.25)";
+        
+        document.body.addEventListener('mouseup', unmarkBoxes);
+      }
+    }
+
+    function unmarkBoxes(evt) {
+      if (markedBoxes.length > 1)
+          for (var i=0; i < markedBoxes.length; i++)
+            markedBoxes[i].style.filter = "";
+      markedBoxes = [];
+      document.body.removeEventListener('mouseup', unmarkBoxes);
+    }
+
+    function removeBox(evt) {
+      var el = evt.target;
+
+      if (el.className == "Box") {
+        var toBeRemoved = getSimilarBoxes(el);
+      
+        if (toBeRemoved.length > 1)
+          for (var i=0; i < toBeRemoved.length; i++) {
+            var col = toBeRemoved[i].parentElement;
+            toBeRemoved[i].remove();
+            if (!col.firstChild) col.remove();
+          }
+
+        if (isGameOver()) {
+          Status.innerText = "Game over!   "+ Board.getElementsByTagName("DIV").length +" boxes left over!";
+        }
+        else {
+          Status.innerText = "Keep going!";
+        }
+      }
+    }
+
+    function isGameOver() {
+      var gameOver = true;
+      var box = Board.getElementsByTagName('DIV');
+
+      for (var i=0; i < box.length && gameOver; i++) {
+        var n = getNeighbors(box[i]);
+        for (var j=0; j < n.length && gameOver; j++)
+          if (n[j].style.backgroundColor == box[i].style.backgroundColor)
+            gameOver = false;
+      }
+      return gameOver;
+    }
+
+    function getSimilarBoxes (el) {
+      var similarBoxes = new Array();
+      similarBoxes[0] = el;
+      el.inlist=true;
+
+      for (var i=0; i < similarBoxes.length; i++) {
+        var neighbor = getNeighbors(similarBoxes[i]);
+
+        for (var k in neighbor)
+          if ( (!neighbor[k].inlist) &&
+          (neighbor[k].style.backgroundColor == el.style.backgroundColor) ) {
+            similarBoxes[similarBoxes.length] = neighbor[k];
+            neighbor[k].inlist = true;
+          }
+      }
+      for (var i=0; i < similarBoxes.length; i++) {
+        similarBoxes[i].inlist = false;
+      }
+      return similarBoxes;
+    }
+
+    function getNeighbors(el) {
+      var neighbor = new Array();
+
+      var n = getIndexOf (el);
+
+      if (el.nextElementSibling) {
+        neighbor[neighbor.length] = el.nextElementSibling;
+      }
+
+      if (el.previousElementSibling) {
+        neighbor[neighbor.length] = el.previousElementSibling;
+      }
+
+      if (el.parentElement.nextElementSibling && el.parentElement.nextElementSibling.children[el.parentElement.nextElementSibling.children.length - n]) {
+        neighbor[neighbor.length] = el.parentElement.nextElementSibling.children[el.parentElement.nextElementSibling.children.length - n];
+      }
+
+      if (el.parentElement.previousElementSibling && el.parentElement.previousElementSibling.children[el.parentElement.previousElementSibling.children.length - n]) {
+        neighbor[neighbor.length] = el.parentElement.previousElementSibling.children[el.parentElement.previousElementSibling.children.length - n];
+      }
+      return neighbor;
+    }
+
+    function getIndexOf (box) {
+      var index = 0;
+      while (index < box.parentElement.children.length
+      && box.parentElement.children[index] != box)
+        index++;
+      return box.parentElement.children.length - index;
+    }
+
+
+  //---Tools---
+
+    function cancelEvent () {
+      window.event.returnValue = false
+      window.event.cancelBubble = true
+    }
+
+    function getPos (elmt, what) {
+      var pos = 0;
+      while (elmt.tagName != "BODY") {
+        pos += eval("elmt.offset"+what);
+        elmt = elmt.offsetParent;
+      }
+      return pos;
+    }
+
+  //---
+
+  function init (evt) {
+    // Generate the board
+    var boardCols = parseInt(Board.getAttribute("Cols"), 10);
+    var boardRows = parseInt(Board.getAttribute("Rows"), 10);
+    var sColumns = "<table width=100% cellpadding=0 cellspacing=2 style='height:"+ 10*35 +"px; width:"+ boardCols*35
+      +"px; background-color:white; border: 1px inset;'>\n <tr><td width=50%>&nbsp;</td>\n";
+    for (var col=0; col < boardCols; col++) {
+      sColumns += "  <td valign=bottom>";
+      for (var row=boardRows; row > 0; row--) {
+        sColumns += "<div class=Box></div>";
+      }
+      sColumns += "</td>\n";
+    }
+    sColumns += "<td width=50%>&nbsp;</td></tr>\n</table>";
+
+    Board.innerHTML = sColumns;
+    setTimeout ("for (box=0; box<document.getElementsByTagName('DIV').length; box++) getRandomColor(document.getElementsByTagName('DIV')[box]);", 10);
+  }
+
+  window.addEventListener("load", init)
+
+  </script>
+</head>
+
+<body onselectstart="return false;">
+  <table cellspacing="2" style="border: 2px outset; background-color: silver;">
+    <thead>
+      <tr>
+        <td style="border: 2px groove; background-color: silver;">
+          <table width="100%" style=" font: bold 8pt verdana">
+            <tr>
+              <td align="center" style="position: relative; top: 0px;">
+                <table style="font: bold 8pt verdana">
+                  <tr>
+                    <td align="center" style="position: relative; top: 0px;"><span style="font-size: 24pt;"><span
+                          style="position: absolute; top: 2px; left: 4px; color:#FF6633;">Div'o'mania</span>Div'o'mania</span><br>
+                      by Sam Benedict</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="border: 2px groove; background-color: silver;">
+          <table width="100%" style="font: 8pt verdana">
+            <tr>
+              <td align="right">Colors:<br>(2-10)
+              <td><input type="text" size="2" maxlength="2" value="3"
+                  onchange="Board.setAttribute('Colors', this.value= (this.value<11)? ((this.value>1)? this.value: 2): 10)"></td>
+              <td align="right">Columns:<br>(3-99)
+              <td><input type="text" size="2" maxlength="2" value="10"
+                  onchange="Board.setAttribute('Cols', this.value= (this.value<99)? ((this.value>2)? this.value: 3): 99)"></td>
+              <td align=right>Rows:<br>(3-99)
+              <td><input type="text" size="2" maxlength="2" value="10"
+                  onchange="Board.setAttribute('Rows', this.value= (this.value<99)? ((this.value>2)? this.value: 3): 99)"></td>
+              <td>&nbsp;<button onclick="restart()">Restart</button></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td align="center" id="Board" Cols="10" Rows="10" Colors="3" onclick="removeBox(event)" onmousedown="markBoxes(event)">
+        </td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td id="Status" align="center"
+          style="font: 10pt verdana bold; border: 2px inset; background-color: silver;">
+          Start clicking!!</td>
+      </tr>
+    </tfoot>
+  </table>
+  <br>
+  <table style="font: 10pt verdana; border: 2px solid black;">
+    <tr>
+      <td style="vertical-align: top; filter:glow(color=orange, strength=2);">
+        <b style="letter-spacing: -1px;">Instructions:&nbsp;&nbsp;</b>
+      </td>
+      <td>Just click on any box that is next to <br>
+        at least one other box of the same color.<br>
+        Try to remove all the boxes.<br></td>
+    </tr>
+  </table>
+</body>
+
+</html>
